@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Arbitrage Escrime",
+    "slug": "arbitrage-escrime",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "android": { "package": "com.arbitrage.escrime" },
+    "assetBundlePatterns": ["**/*"]
+  }
+}
