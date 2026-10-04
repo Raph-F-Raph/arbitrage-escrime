@@ -34,5 +34,7 @@ export function cfgFromSettings(s: Settings, autoEnd: boolean): MatchConfig {
     breakMs: s.breakSec * 1000,
     weapon: s.weapon,
     team: s.team,
+    // Sabre en élimination directe (plusieurs périodes, hors équipes) : pas de limite de temps
+    noClock: autoEnd && s.weapon === 'sabre' && s.periods > 1 && !s.team,
   };
 }

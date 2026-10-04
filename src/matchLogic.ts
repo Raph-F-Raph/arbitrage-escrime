@@ -40,6 +40,9 @@ export type Action =
   | { type: 'DRAW'; side: Side }
   | { type: 'START_DECISIVE'; side: Side };
 
+// Valeur de départ du chrono d'une période (0 si pas de limite de temps)
+const periodStart = (cfg: MatchConfig): number => (cfg.noClock ? 0 : cfg.periodMs);
+
 const other = (s: Side): Side => (s === 'left' ? 'right' : 'left');
 
 export function initialState(cfg: MatchConfig, left = 0, right = 0): MatchState {
@@ -49,7 +52,7 @@ export function initialState(cfg: MatchConfig, left = 0, right = 0): MatchState 
     right,
     phase: 'idle',
     period: 0,
-    remainingMs: cfg.periodMs,
+    remainingMs: periodStart(cfg),
     passivityMs: PASSIVITY_MS,
     cards: { left: [], right: [] },
     decisive: false,
@@ -100,7 +103,7 @@ function endPeriod(s: MatchState): MatchState {
         ...s,
         period: s.period + 1,
         phase: 'idle',
-        remainingMs: cfg.periodMs,
+        remainingMs: periodStart(cfg),
         passivityMs: PASSIVITY_MS,
         message: `Période ${s.period + 2}`,
       },
@@ -186,7 +189,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
   switch (a.type) {
     case 'CONFIG': {
       const ns = { ...s, cfg: a.cfg };
-      if (s.phase === 'idle' && s.period === 0 && !s.decisiveMinute) ns.remainingMs = a.cfg.periodMs;
+      if (s.phase === 'idle' && s.period === 0 && !s.decisiveMinute) ns.remainingMs = periodStart(a.cfg);
       return ns;
     }
     case 'RESET':
@@ -194,7 +197,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
 
     case 'START':
       if (s.phase === 'idle' || s.phase === 'paused') {
-        if (s.remainingMs <= 0) return s;
+        if (s.remainingMs <= 0 && !s.cfg.noClock) return s;
         return { ...s, phase: 'running', message: null };
       }
       return s;
@@ -207,18 +210,20 @@ export function reducer(s: MatchState, a: Action): MatchState {
         ...s,
         period: s.period + 1,
         phase: 'idle',
-        remainingMs: s.cfg.periodMs,
+        remainingMs: periodStart(s.cfg),
         passivityMs: PASSIVITY_MS,
         message: `Période ${s.period + 2}`,
       };
 
     case 'TICK': {
       if (s.phase === 'running') {
-        const rem = s.remainingMs - a.dt;
+        // Sabre en élimination directe : le chrono compte vers le haut, sans fin par le temps
+        const noClock = !!s.cfg.noClock && !s.decisive && !s.decisiveMinute;
+        const rem = noClock ? s.remainingMs + a.dt : s.remainingMs - a.dt;
         const pas = s.passivityMs - a.dt;
         let ns: MatchState = { ...s, remainingMs: Math.max(rem, 0), passivityMs: Math.max(pas, 0) };
         if (s.passivityMs > 0 && pas <= 0) ns = raise(ns, 'passivity');
-        if (rem <= 0) {
+        if (!noClock && rem <= 0) {
           ns =
             ns.decisiveMinute && ns.priority
               ? declare(ns, ns.priority, 'Temps écoulé – victoire à la priorité')
@@ -234,7 +239,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
               ...s,
               period: s.period + 1,
               phase: 'idle',
-              remainingMs: s.cfg.periodMs,
+              remainingMs: periodStart(s.cfg),
               passivityMs: PASSIVITY_MS,
               message: `Période ${s.period + 2}`,
             },
@@ -282,7 +287,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
       let ns: MatchState = { ...s, cards: { ...s.cards, [a.side]: list }, message: null };
       if (card.gavePoint) ns = { ...ns, [opp]: Math.max(0, ns[opp] - 1) } as MatchState;
       if (ns.phase === 'ended' || ns.phase === 'tie') {
-        ns = { ...ns, phase: ns.remainingMs > 0 ? 'paused' : 'idle', winner: null, decisive: false };
+        ns = { ...ns, phase: ns.remainingMs > 0 || ns.cfg.noClock ? 'paused' : 'idle', winner: null, decisive: false };
       }
       return ns;
     }
@@ -300,7 +305,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
         decisive: false,
       };
       if (s.phase === 'ended' || s.phase === 'tie') {
-        ns = ns.remainingMs > 0 ? { ...ns, phase: 'paused' } : finishByTime(ns);
+        ns = ns.remainingMs > 0 || ns.cfg.noClock ? { ...ns, phase: 'paused' } : finishByTime(ns);
       }
       return ns;
     }

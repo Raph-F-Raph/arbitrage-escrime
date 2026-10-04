@@ -16,6 +16,7 @@ export interface MatchConfig {
   breakMs: number;
   weapon: Weapon;
   team: boolean;
+  noClock?: boolean; // sabre en élimination directe : pas de limite de temps (le chrono compte vers le haut)
 }
 
 export interface FormatPreset {
