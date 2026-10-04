@@ -121,7 +121,7 @@ export default function SettingsScreen({ settings, onChange, onBack, colors }: P
           ))}
         </View>
         <Text style={[styles.note, { color: colors.muted }]}>
-          Épée en poules : à 4-4, touche décisive. Sabre en élimination directe (mode Poule) : pas de limite de temps, le chrono compte vers le haut et la pause démarre dès qu'un tireur atteint 8 touches (5 en vétérans).
+          Épée en poules : à 4-4, touche décisive. Sabre en élimination directe (mode Poule) : pas de limite de temps, le chrono affiche 1:00 comme la passivité et la pause démarre dès qu'un tireur atteint 8 touches (5 en vétérans).
         </Text>
 
         {section('FORMAT DE MATCH')}

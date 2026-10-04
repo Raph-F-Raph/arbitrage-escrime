@@ -40,8 +40,10 @@ export type Action =
   | { type: 'DRAW'; side: Side }
   | { type: 'START_DECISIVE'; side: Side };
 
-// Valeur de départ du chrono d'une période (0 si pas de limite de temps)
-const periodStart = (cfg: MatchConfig): number => (cfg.noClock ? 0 : cfg.periodMs);
+// Valeur de départ du chrono d'une période (1:00 si pas de limite de temps)
+const periodStart = (cfg: MatchConfig): number => (cfg.noClock ? PASSIVITY_MS : cfg.periodMs);
+// Sabre sans limite de temps : le chrono (1:00) se remet à 1:00 à chaque touche, comme la passivité
+const clockFree = (s: MatchState): boolean => !!s.cfg.noClock && !s.decisive && !s.decisiveMinute;
 
 const other = (s: Side): Side => (s === 'left' ? 'right' : 'left');
 
@@ -120,6 +122,7 @@ function applyScore(s: MatchState, side: Side, delta: number, push: boolean): Ma
     [side]: Math.max(0, s[side] + delta),
     history: push ? [...s.history.slice(-49), prev] : s.history,
     passivityMs: delta > 0 ? PASSIVITY_MS : s.passivityMs,
+    remainingMs: delta > 0 && clockFree(s) ? PASSIVITY_MS : s.remainingMs,
   } as MatchState;
 }
 
@@ -217,9 +220,9 @@ export function reducer(s: MatchState, a: Action): MatchState {
 
     case 'TICK': {
       if (s.phase === 'running') {
-        // Sabre en élimination directe : le chrono compte vers le haut, sans fin par le temps
-        const noClock = !!s.cfg.noClock && !s.decisive && !s.decisiveMinute;
-        const rem = noClock ? s.remainingMs + a.dt : s.remainingMs - a.dt;
+        // Sabre en élimination directe : pas de fin de période par le temps (le chrono de 1:00 s'arrête à 0)
+        const noClock = clockFree(s);
+        const rem = s.remainingMs - a.dt;
         const pas = s.passivityMs - a.dt;
         let ns: MatchState = { ...s, remainingMs: Math.max(rem, 0), passivityMs: Math.max(pas, 0) };
         if (s.passivityMs > 0 && pas <= 0) ns = raise(ns, 'passivity');
@@ -269,6 +272,7 @@ export function reducer(s: MatchState, a: Action): MatchState {
         right: s.right + 1,
         history: [...s.history.slice(-49), { left: s.left, right: s.right }],
         passivityMs: PASSIVITY_MS,
+        remainingMs: clockFree(s) ? PASSIVITY_MS : s.remainingMs,
         message: null,
       };
       return afterScore(ns, null);
