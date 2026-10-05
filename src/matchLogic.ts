@@ -37,6 +37,7 @@ export type Action =
   | { type: 'UNDO_CARD'; side: Side }
   | { type: 'UNDO_TOUCH' }
   | { type: 'SKIP_BREAK' }
+  | { type: 'SET_PERIOD'; delta: 1 | -1 }
   | { type: 'DRAW'; side: Side }
   | { type: 'START_DECISIVE'; side: Side };
 
@@ -206,6 +207,24 @@ export function reducer(s: MatchState, a: Action): MatchState {
       return s;
     case 'STOP':
       return s.phase === 'running' ? { ...s, phase: 'paused' } : s;
+
+    case 'SET_PERIOD': {
+      // Changement manuel de période (chrono arrêté). En mode Simple, pas de limite de périodes.
+      if (s.phase === 'running' || s.phase === 'ended' || s.phase === 'tie') return s;
+      const max = s.cfg.autoEnd ? s.cfg.periods - 1 : Infinity;
+      const p = Math.min(max, Math.max(0, s.period + a.delta));
+      if (p === s.period) return s;
+      return {
+        ...s,
+        period: p,
+        phase: 'idle',
+        remainingMs: periodStart(s.cfg),
+        passivityMs: PASSIVITY_MS,
+        decisive: false,
+        decisiveMinute: false,
+        message: `Période ${p + 1}`,
+      };
+    }
 
     case 'SKIP_BREAK':
       if (s.phase !== 'break') return s;

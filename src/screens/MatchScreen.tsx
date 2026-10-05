@@ -148,9 +148,28 @@ export default function MatchScreen(p: Props) {
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
       <View style={styles.top}>
-        <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700' }}>
-          {s.cfg.periods > 1 ? `${s.cfg.team ? 'R' : 'P'}${s.period + 1}/${s.cfg.periods}` : 'P1'}
-        </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <Pressable
+            onPress={() => dispatch({ type: 'SET_PERIOD', delta: -1 })}
+            style={[styles.periodBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            accessibilityLabel="Période précédente"
+          >
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '700' }}>−</Text>
+          </Pressable>
+          <Text style={{ color: colors.text, fontSize: 18, fontWeight: '700', minWidth: 64, textAlign: 'center' }}>
+            {(() => {
+              const total = Math.max(s.cfg.periods, s.period + 1);
+              return total > 1 ? `${s.cfg.team ? 'R' : 'P'}${s.period + 1}/${total}` : 'P1';
+            })()}
+          </Text>
+          <Pressable
+            onPress={() => dispatch({ type: 'SET_PERIOD', delta: 1 })}
+            style={[styles.periodBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            accessibilityLabel="Période suivante"
+          >
+            <Text style={{ color: colors.text, fontSize: 20, fontWeight: '700' }}>＋</Text>
+          </Pressable>
+        </View>
         {s.decisive || s.decisiveMinute ? (
           <Text style={{ color: colors.accent, fontWeight: '700' }}>TOUCHE DÉCISIVE</Text>
         ) : null}
@@ -303,6 +322,7 @@ export default function MatchScreen(p: Props) {
 const styles = StyleSheet.create({
   root: { flex: 1, paddingHorizontal: 8 },
   top: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 6, minHeight: 36 },
+  periodBtn: { width: 40, height: 34, borderRadius: 8, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   scoreRow: { flexDirection: 'row', justifyContent: 'space-between' },
   side: { flex: 1, alignItems: 'center' },
   center: { width: 84, alignItems: 'center', justifyContent: 'center', gap: 8 },
