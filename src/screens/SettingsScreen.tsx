@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { FORMATS } from '../presets';
-import { FormatPreset, Settings, Weapon } from '../types';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { MODE_DEFAULTS, MODE_NAMES, MODES } from '../presets';
+import { Mode, ModeFormat, Settings, Weapon } from '../types';
 import { Colors, formatMinSec } from '../utils';
 
 interface Props {
@@ -9,16 +9,19 @@ interface Props {
   onChange: (s: Settings) => void;
   onBack: () => void;
   colors: Colors;
+  mode: Mode; // mode affiché à l'ouverture des réglages
 }
 
 const WEAPONS: { id: Weapon; label: string }[] = [
   { id: 'foil', label: 'Fleuret' },
   { id: 'epee', label: 'Épée' },
   { id: 'sabre', label: 'Sabre' },
+  { id: 'all', label: 'Toutes' },
 ];
 
-export default function SettingsScreen({ settings, onChange, onBack, colors }: Props) {
-  const [presetName, setPresetName] = useState('');
+export default function SettingsScreen({ settings, onChange, onBack, colors, mode }: Props) {
+  const [editMode, setEditMode] = useState<Mode>(mode);
+  const q = settings.modes[editMode];
 
   const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
     <Pressable
@@ -67,41 +70,10 @@ export default function SettingsScreen({ settings, onChange, onBack, colors }: P
   const section = (t: string) => <Text style={[styles.section, { color: colors.muted }]}>{t}</Text>;
 
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-  const setFormat = (patch: Partial<Settings>) => onChange({ ...settings, ...patch, formatId: 'custom' });
-
-  const applyPreset = (p: FormatPreset) =>
-    onChange({
-      ...settings,
-      formatId: p.id,
-      target: p.target,
-      periods: p.periods,
-      periodSec: p.periodSec,
-      breakSec: p.breakSec,
-      team: p.team,
-    });
-
-  const savePreset = () => {
-    const name = presetName.trim();
-    if (!name) return;
-    const p: FormatPreset = {
-      id: `c${Date.now()}`,
-      name,
-      target: settings.target,
-      periods: settings.periods,
-      periodSec: settings.periodSec,
-      breakSec: settings.breakSec,
-      team: settings.team,
-    };
-    onChange({ ...settings, customPresets: [...settings.customPresets, p], formatId: p.id });
-    setPresetName('');
-  };
-
-  const deletePreset = (id: string) =>
-    onChange({
-      ...settings,
-      customPresets: settings.customPresets.filter((p) => p.id !== id),
-      formatId: settings.formatId === id ? 'custom' : settings.formatId,
-    });
+  const setFormat = (patch: Partial<ModeFormat>) =>
+    onChange({ ...settings, modes: { ...settings.modes, [editMode]: { ...q, ...patch } } });
+  const resetFormat = () =>
+    onChange({ ...settings, modes: { ...settings.modes, [editMode]: { ...MODE_DEFAULTS[editMode] } } });
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -121,64 +93,50 @@ export default function SettingsScreen({ settings, onChange, onBack, colors }: P
           ))}
         </View>
         <Text style={[styles.note, { color: colors.muted }]}>
-          Épée en poules : à 4-4, touche décisive. Sabre en élimination directe (mode Poule) : pas de limite de temps, le chrono affiche 1:00 comme la passivité et la pause démarre dès qu'un tireur atteint 8 touches (5 en vétérans).
+          {settings.weapon === 'all'
+            ? 'Toutes : règles générales, sans règle propre à une arme (ni touche décisive à 4-4, ni pause à 8 touches).'
+            : "Épée en poules : à 4-4, touche décisive. Sabre en élimination directe : pas de limite de temps, le chrono affiche 1:00 comme la passivité et la pause démarre dès qu'un tireur atteint 8 touches."}
         </Text>
 
-        {section('FORMAT DE MATCH')}
+        {section('FORMAT DU MODE')}
         <View style={styles.chips}>
-          {[...FORMATS, ...settings.customPresets].map((p) => (
-            <Chip key={p.id} label={p.name} active={settings.formatId === p.id} onPress={() => applyPreset(p)} />
+          {MODES.map((m) => (
+            <Chip key={m} label={MODE_NAMES[m]} active={editMode === m} onPress={() => setEditMode(m)} />
           ))}
         </View>
         <Stepper
           label="Durée d'une période"
-          display={formatMinSec(settings.periodSec)}
-          onMinus={() => setFormat({ periodSec: clamp(settings.periodSec - 15, 15, 600) })}
-          onPlus={() => setFormat({ periodSec: clamp(settings.periodSec + 15, 15, 600) })}
+          display={formatMinSec(q.periodSec)}
+          onMinus={() => setFormat({ periodSec: clamp(q.periodSec - 15, 15, 600) })}
+          onPlus={() => setFormat({ periodSec: clamp(q.periodSec + 15, 15, 600) })}
         />
         <Stepper
           label="Nombre de périodes"
-          display={`${settings.periods}`}
-          onMinus={() => setFormat({ periods: clamp(settings.periods - 1, 1, 9) })}
-          onPlus={() => setFormat({ periods: clamp(settings.periods + 1, 1, 9) })}
+          display={`${q.periods}`}
+          onMinus={() => setFormat({ periods: clamp(q.periods - 1, 1, 9) })}
+          onPlus={() => setFormat({ periods: clamp(q.periods + 1, 1, 9) })}
         />
         <Stepper
           label="Pause entre périodes"
-          display={formatMinSec(settings.breakSec)}
-          onMinus={() => setFormat({ breakSec: clamp(settings.breakSec - 15, 0, 300) })}
-          onPlus={() => setFormat({ breakSec: clamp(settings.breakSec + 15, 0, 300) })}
+          display={formatMinSec(q.breakSec)}
+          onMinus={() => setFormat({ breakSec: clamp(q.breakSec - 15, 0, 300) })}
+          onPlus={() => setFormat({ breakSec: clamp(q.breakSec + 15, 0, 300) })}
         />
-        <Stepper
-          label="Score cible"
-          display={`${settings.target}`}
-          onMinus={() => setFormat({ target: clamp(settings.target - 1, 1, 45) })}
-          onPlus={() => setFormat({ target: clamp(settings.target + 1, 1, 45) })}
-        />
-        <Text style={[styles.note, { color: colors.muted }]}>
-          Le score cible et la fin automatique ne s'appliquent qu'en mode Poule. Le mode Simple n'a aucune limite de points.
-        </Text>
-
-        <Text style={{ color: colors.text, marginTop: 12, fontWeight: '700' }}>Enregistrer comme préréglage</Text>
-        <View style={[styles.row, { marginTop: 6 }]}>
-          <TextInput
-            value={presetName}
-            onChangeText={setPresetName}
-            placeholder="Nom du préréglage"
-            placeholderTextColor={colors.muted}
-            style={[styles.input, { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface }]}
+        {editMode !== 'simple' && (
+          <Stepper
+            label="Score cible"
+            display={`${q.target}`}
+            onMinus={() => setFormat({ target: clamp(q.target - 1, 1, 45) })}
+            onPlus={() => setFormat({ target: clamp(q.target + 1, 1, 45) })}
           />
-          <Pressable style={[styles.save, { backgroundColor: colors.accent }]} onPress={savePreset}>
-            <Text style={{ color: '#fff', fontWeight: '700' }}>Enregistrer</Text>
-          </Pressable>
-        </View>
-        {settings.customPresets.map((p) => (
-          <View key={p.id} style={styles.row}>
-            <Text style={{ color: colors.text, flex: 1 }}>{p.name}</Text>
-            <Pressable onPress={() => deletePreset(p.id)}>
-              <Text style={{ color: colors.left }}>Supprimer</Text>
-            </Pressable>
-          </View>
-        ))}
+        )}
+        <Text style={[styles.note, { color: colors.muted }]}>
+          {editMode === 'simple'
+            ? "Le mode Simple n'a aucune limite de points."
+            : 'Fin automatique du match quand un tireur atteint le score cible.'}
+          {editMode === 'equipes' ? ' Un relais = 5 touches cumulées.' : ''}
+        </Text>
+        <Chip label="Valeurs FIE par défaut" active={false} onPress={resetFormat} />
 
         {section('SÉCURITÉ DU CHRONO')}
         <Stepper

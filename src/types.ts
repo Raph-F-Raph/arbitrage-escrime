@@ -1,4 +1,5 @@
-export type Weapon = 'foil' | 'epee' | 'sabre';
+export type Weapon = 'foil' | 'epee' | 'sabre' | 'all'; // 'all' = règles générales, sans règle propre à une arme
+export type Mode = 'simple' | 'pool' | 'de' | 'equipes';
 export type Side = 'left' | 'right';
 export type CardType = 'yellow' | 'red' | 'black';
 
@@ -19,29 +20,20 @@ export interface MatchConfig {
   noClock?: boolean; // sabre en élimination directe : pas de limite de temps (chrono de 1:00 comme la passivité)
 }
 
-export interface FormatPreset {
-  id: string;
-  name: string;
-  target: number;
+export interface ModeFormat {
+  target: number; // ignoré en mode Simple (aucune limite de points)
   periods: number;
   periodSec: number;
   breakSec: number;
-  team: boolean;
 }
 
 export interface Settings {
   weapon: Weapon;
-  formatId: string;
-  target: number;
-  periods: number;
-  periodSec: number;
-  breakSec: number;
-  team: boolean;
+  modes: Record<Mode, ModeFormat>;
   longPressMs: number;
   timerScale: number;
   theme: 'system' | 'light' | 'dark';
   sound: boolean;
   vibration: boolean;
   keepAwake: boolean;
-  customPresets: FormatPreset[];
 }

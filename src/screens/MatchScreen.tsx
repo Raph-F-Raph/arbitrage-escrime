@@ -250,7 +250,7 @@ export default function MatchScreen(p: Props) {
       </Modal>
 
       {/* Fin de match (mode Poule) */}
-      <Modal visible={!!p.poolMode && (s.phase === 'ended' || s.phase === 'tie')} transparent animationType="fade">
+      <Modal visible={cfg.autoEnd && (s.phase === 'ended' || s.phase === 'tie')} transparent animationType="fade">
         <View style={styles.overlay}>
           <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
             {s.phase === 'ended' ? (
@@ -263,9 +263,13 @@ export default function MatchScreen(p: Props) {
                 </Text>
                 <Pressable
                   style={[styles.dialogBtn, { backgroundColor: colors.accent }]}
-                  onPress={() => p.onValidate?.(s.left, s.right)}
+                  onPress={() =>
+                    p.poolMode
+                      ? p.onValidate?.(s.left, s.right)
+                      : dispatch({ type: 'RESET', cfg, left: 0, right: 0 })
+                  }
                 >
-                  <Text style={styles.dialogBtnText}>Valider</Text>
+                  <Text style={styles.dialogBtnText}>{p.poolMode ? 'Valider' : 'Nouveau match'}</Text>
                 </Pressable>
                 <Pressable
                   style={[styles.dialogBtn, { backgroundColor: colors.border }]}

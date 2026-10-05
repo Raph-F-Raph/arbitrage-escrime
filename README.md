@@ -3,10 +3,10 @@
 Application Expo / React Native, 100 % locale (aucune connexion nécessaire).
 
 ## Contenu
-- `src/EscrimeApp.tsx` : application complète (sélecteur Simple / Poule, réglages)
+- `src/EscrimeApp.tsx` : application complète (onglets Simple / Poule / Élimination directe / Équipes, réglages)
 - `src/matchLogic.ts` : règles du match (chrono, scores, passivité, cartons, fin de match, touche décisive)
 - `src/poolLogic.ts` : poules (ordre des matchs, classement V/M puis indice puis touches données)
-- `src/presets.ts` : formats FIE (Poules, Élimination directe, Vétérans, Équipes)
+- `src/presets.ts` : formats FIE par mode (Simple, Poule, Élimination directe, Équipes)
 - `src/screens/` : MatchScreen, PoolScreen, SettingsScreen
 - `src/utils.ts` : stockage local, son, couleurs
 - `assets/beep.wav` : son embarqué

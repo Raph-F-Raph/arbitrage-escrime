@@ -4,13 +4,12 @@ import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import MatchScreen from './screens/MatchScreen';
 import PoolScreen from './screens/PoolScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { cfgFromSettings, DEFAULT_SETTINGS } from './presets';
+import { cfgForMode, DEFAULT_SETTINGS, mergeSettings, MODE_SHORT, MODES } from './presets';
 import { key, Pool } from './poolLogic';
-import { Settings } from './types';
+import { Mode, Settings } from './types';
 import { getColors, loadJSON, saveJSON } from './utils';
 
-type Mode = 'simple' | 'pool';
-const K_SETTINGS = 'escrime_settings_v1';
+const K_SETTINGS = 'escrime_settings_v2';
 const K_POOL = 'escrime_pool_v1';
 const K_MODE = 'escrime_mode_v1';
 
@@ -26,7 +25,7 @@ export default function EscrimeApp() {
   useEffect(() => {
     (async () => {
       const s = await loadJSON<Settings>(K_SETTINGS);
-      if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
+      if (s) setSettings(mergeSettings(s));
       const p = await loadJSON<Pool>(K_POOL);
       if (p) setPool(p);
       const m = await loadJSON<Mode>(K_MODE);
@@ -60,8 +59,7 @@ export default function EscrimeApp() {
   if (!loaded) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 
   const topPad = (StatusBar.currentHeight ?? 36) + 4;
-  const simpleCfg = cfgFromSettings(settings, false); // mode Simple : aucune limite de points
-  const poolCfg = cfgFromSettings(settings, true);
+  const poolCfg = cfgForMode(settings, 'pool');
 
   const validate = (l: number, r: number) => {
     if (!poolMatch || !pool) return;
@@ -86,7 +84,7 @@ export default function EscrimeApp() {
             </Pressable>
           ) : (
             <View style={{ flexDirection: 'row', flex: 1, backgroundColor: colors.surface, borderRadius: 10, padding: 3 }}>
-              {(['simple', 'pool'] as Mode[]).map((m) => (
+              {MODES.map((m) => (
                 <Pressable
                   key={m}
                   onPress={() => setMode(m)}
@@ -98,8 +96,11 @@ export default function EscrimeApp() {
                     backgroundColor: mode === m ? colors.accent : 'transparent',
                   }}
                 >
-                  <Text style={{ color: mode === m ? '#fff' : colors.text, fontWeight: '700' }}>
-                    {m === 'simple' ? 'Simple' : 'Poule'}
+                  <Text
+                    style={{ color: mode === m ? '#fff' : colors.text, fontWeight: '700', fontSize: 13 }}
+                    numberOfLines={1}
+                  >
+                    {MODE_SHORT[m]}
                   </Text>
                 </Pressable>
               ))}
@@ -111,10 +112,12 @@ export default function EscrimeApp() {
           </Pressable>
         </View>
 
-        {/* Mode Simple : reste en mémoire quand on change de mode */}
-        <View style={{ flex: 1, display: mode === 'simple' ? 'flex' : 'none' }}>
-          <MatchScreen cfg={simpleCfg} settings={settings} colors={colors} />
-        </View>
+        {/* Simple, Élimination directe, Équipes : chaque match reste en mémoire quand on change de mode */}
+        {(['simple', 'de', 'equipes'] as Mode[]).map((m) => (
+          <View key={m} style={{ flex: 1, display: mode === m ? 'flex' : 'none' }}>
+            <MatchScreen cfg={cfgForMode(settings, m)} settings={settings} colors={colors} />
+          </View>
+        ))}
 
         {/* Mode Poule */}
         <View style={{ flex: 1, display: mode === 'pool' ? 'flex' : 'none' }}>
@@ -146,6 +149,7 @@ export default function EscrimeApp() {
           <SettingsScreen
             settings={settings}
             onChange={setSettings}
+            mode={mode}
             onBack={() => setShowSettings(false)}
             colors={colors}
           />
