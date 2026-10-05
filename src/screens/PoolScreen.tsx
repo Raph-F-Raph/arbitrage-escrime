@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { key, makeMatches, Pool, standings } from '../poolLogic';
+import { confirmAction } from '../confirm';
 import { Colors } from '../utils';
 
 interface Props {
@@ -20,10 +21,7 @@ export default function PoolScreen({ pool, setPool, colors, onOpenMatch }: Props
   };
 
   const newPool = () => {
-    Alert.alert('Nouvelle poule ?', 'La poule actuelle et ses résultats seront effacés.', [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Effacer', style: 'destructive', onPress: () => setPool(null) },
-    ]);
+    confirmAction('Nouvelle poule ?', 'La poule actuelle et ses résultats seront effacés.', 'Effacer', () => setPool(null));
   };
 
   if (!pool) {

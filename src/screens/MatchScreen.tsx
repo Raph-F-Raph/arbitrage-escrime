@@ -1,5 +1,6 @@
 import React, { useEffect, useReducer, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, Vibration, View } from 'react-native';
+import { confirmAction } from '../confirm';
 import { initialState, reducer } from '../matchLogic';
 import { CardType, MatchConfig, Settings, Side } from '../types';
 import { Colors, formatMinSec, formatTime, playBeep } from '../utils';
@@ -75,14 +76,9 @@ export default function MatchScreen(p: Props) {
   };
 
   const onReset = () => {
-    Alert.alert('Remettre à zéro ?', 'Les scores, le chrono et les cartons seront effacés.', [
-      { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Remettre à zéro',
-        style: 'destructive',
-        onPress: () => dispatch({ type: 'RESET', cfg, left: 0, right: 0 }),
-      },
-    ]);
+    confirmAction('Remettre à zéro ?', 'Les scores, le chrono et les cartons seront effacés.', 'Remettre à zéro', () =>
+      dispatch({ type: 'RESET', cfg, left: 0, right: 0 })
+    );
   };
 
   const onDice = () => {
