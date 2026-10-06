@@ -25,6 +25,7 @@ jobs:
       - run: npm install
       - run: npx expo install react-dom react-native-web @expo/metro-runtime
       - run: npx expo export --platform web
+      - run: node scripts/make-pwa.js
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
