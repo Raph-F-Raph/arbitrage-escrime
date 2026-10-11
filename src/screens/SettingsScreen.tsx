@@ -19,9 +19,11 @@ const WEAPONS: { id: Weapon; label: string }[] = [
   { id: 'all', label: 'Toutes' },
 ];
 
+const WEAPONS_LABEL: Record<Weapon, string> = { foil: 'Fleuret', epee: 'Épée', sabre: 'Sabre', all: 'Toutes' };
+
 export default function SettingsScreen({ settings, onChange, onBack, colors, mode }: Props) {
   const [editMode, setEditMode] = useState<Mode>(mode);
-  const q = settings.modes[editMode];
+  const q = settings.weaponModes[settings.weapon][editMode];
 
   const Chip = ({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) => (
     <Pressable
@@ -70,10 +72,18 @@ export default function SettingsScreen({ settings, onChange, onBack, colors, mod
   const section = (t: string) => <Text style={[styles.section, { color: colors.muted }]}>{t}</Text>;
 
   const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+  // Le format est enregistré pour l'arme choisie : chaque arme garde ses propres valeurs
+  const withFormat = (f: ModeFormat): Settings => ({
+    ...settings,
+    weaponModes: {
+      ...settings.weaponModes,
+      [settings.weapon]: { ...settings.weaponModes[settings.weapon], [editMode]: f },
+    },
+  });
   const setFormat = (patch: Partial<ModeFormat>) =>
-    onChange({ ...settings, modes: { ...settings.modes, [editMode]: { ...q, ...patch } } });
+    onChange(withFormat({ ...q, ...patch }));
   const resetFormat = () =>
-    onChange({ ...settings, modes: { ...settings.modes, [editMode]: { ...MODE_DEFAULTS[editMode] } } });
+    onChange(withFormat({ ...MODE_DEFAULTS[editMode] }));
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -98,7 +108,7 @@ export default function SettingsScreen({ settings, onChange, onBack, colors, mod
             : "Épée en poules : à 4-4, touche décisive. Sabre en élimination directe : pas de limite de temps, le chrono affiche 1:00 comme la passivité et la pause démarre dès qu'un tireur atteint 8 touches."}
         </Text>
 
-        {section('FORMAT DU MODE')}
+        {section(`FORMAT DU MODE – ${WEAPONS_LABEL[settings.weapon].toUpperCase()}`)}
         <View style={styles.chips}>
           {MODES.map((m) => (
             <Chip key={m} label={MODE_NAMES[m]} active={editMode === m} onPress={() => setEditMode(m)} />
@@ -134,7 +144,7 @@ export default function SettingsScreen({ settings, onChange, onBack, colors, mod
           {editMode === 'simple'
             ? "Le mode Simple n'a aucune limite de points."
             : 'Fin automatique du match quand un tireur atteint le score cible.'}
-          {editMode === 'equipes' ? ' Un relais = 5 touches cumulées.' : ''}
+          {editMode === 'equipes' ? ' Un relais = 5 touches cumulées.' : ''} Ces valeurs sont enregistrées séparément pour chaque arme.
         </Text>
         <Chip label="Valeurs FIE par défaut" active={false} onPress={resetFormat} />
 

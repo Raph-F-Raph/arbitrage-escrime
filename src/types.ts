@@ -29,7 +29,7 @@ export interface ModeFormat {
 
 export interface Settings {
   weapon: Weapon;
-  modes: Record<Mode, ModeFormat>;
+  weaponModes: Record<Weapon, Record<Mode, ModeFormat>>; // un format par mode, enregistré séparément pour chaque arme
   longPressMs: number;
   timerScale: number;
   theme: 'system' | 'light' | 'dark';

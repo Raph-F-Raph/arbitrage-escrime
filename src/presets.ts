@@ -1,4 +1,4 @@
-import { MatchConfig, Mode, ModeFormat, Settings } from './types';
+import { MatchConfig, Mode, ModeFormat, Settings, Weapon } from './types';
 
 export const MODE_NAMES: Record<Mode, string> = {
   simple: 'Simple',
@@ -25,9 +25,22 @@ export const MODE_DEFAULTS: Record<Mode, ModeFormat> = {
   equipes: { target: 45, periods: 9, periodSec: 180, breakSec: 0 },
 };
 
+export const WEAPONS: Weapon[] = ['foil', 'epee', 'sabre', 'all'];
+
+const cloneModes = (): Record<Mode, ModeFormat> => {
+  const out = {} as Record<Mode, ModeFormat>;
+  for (const m of MODES) out[m] = { ...MODE_DEFAULTS[m] };
+  return out;
+};
+
 export const DEFAULT_SETTINGS: Settings = {
   weapon: 'foil',
-  modes: MODE_DEFAULTS,
+  weaponModes: {
+    foil: cloneModes(),
+    epee: cloneModes(),
+    sabre: cloneModes(),
+    all: cloneModes(),
+  },
   longPressMs: 600,
   timerScale: 1,
   theme: 'system',
@@ -37,15 +50,24 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 // Fusionne des réglages enregistrés (éventuellement d'une ancienne version) avec les valeurs par défaut
-export function mergeSettings(saved: Partial<Settings> | null): Settings {
-  const s = { ...DEFAULT_SETTINGS, ...(saved ?? {}) };
-  const modes = {} as Record<Mode, ModeFormat>;
-  for (const m of MODES) modes[m] = { ...MODE_DEFAULTS[m], ...(saved?.modes?.[m] ?? {}) };
-  return { ...s, modes };
+export function mergeSettings(saved: (Partial<Settings> & { modes?: Partial<Record<Mode, ModeFormat>> }) | null): Settings {
+  const { modes: legacy, ...rest } = saved ?? {};
+  const s = { ...DEFAULT_SETTINGS, ...rest };
+  const weaponModes = {} as Record<Weapon, Record<Mode, ModeFormat>>;
+  for (const w of WEAPONS) {
+    const fmts = cloneModes();
+    for (const m of MODES) {
+      // ancienne version : un seul format pour toutes les armes → repris pour l'arme qui était choisie
+      const old = w === s.weapon ? legacy?.[m] : undefined;
+      fmts[m] = { ...fmts[m], ...(old ?? {}), ...(saved?.weaponModes?.[w]?.[m] ?? {}) };
+    }
+    weaponModes[w] = fmts;
+  }
+  return { ...s, weaponModes };
 }
 
 export function cfgForMode(s: Settings, mode: Mode): MatchConfig {
-  const f = s.modes[mode];
+  const f = s.weaponModes[s.weapon][mode];
   const autoEnd = mode !== 'simple'; // le mode Simple n'a aucune limite de points
   const team = mode === 'equipes';
   return {
