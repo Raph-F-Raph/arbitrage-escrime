@@ -87,7 +87,11 @@ const head =
   `<meta name="theme-color" content="#121826">` +
   `<link rel="apple-touch-icon" href="${BASE}icon-192.png">`;
 const reg =
-  `<script>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('${BASE}sw.js',{scope:'${BASE}'}).catch(function(){})})}</script>`;
+  `<script>if('serviceWorker' in navigator){` +
+  // si une nouvelle version prend la main alors que l'app était déjà ouverte, on recharge une fois
+  `var had=!!navigator.serviceWorker.controller,done=false;` +
+  `navigator.serviceWorker.addEventListener('controllerchange',function(){if(had&&!done){done=true;location.reload()}});` +
+  `window.addEventListener('load',function(){navigator.serviceWorker.register('${BASE}sw.js',{scope:'${BASE}'}).catch(function(){})})}</script>`;
 html = html.replace('</head>', head + '</head>').replace('</body>', reg + '</body>');
 fs.writeFileSync(idx, html);
 console.log(`PWA prête : ${urls.length} fichiers, version ${version}`);
